@@ -1,3 +1,8 @@
+using Dapper;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Data.Sqlite;
+using moodies_backend.Model;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -14,28 +19,33 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
+app.MapGet("/searchingPreview", async (string search, string? skip, string? take) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    await using var connection = new SqliteConnection("Data Source=search.db");
+    await connection.OpenAsync();
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    if (take == null)
+    {
+        take = "5";
+    }
+
+    if (skip == null)
+    {
+        skip = "0";
+    }
+
+    var searchingPattern = $"%{search}%";
+
+    var getQuery = """
+                   SELECT idx, title
+                   FROM movies
+                   WHERE title
+                   LIKE @searchingPattern Limit @take OFFSET @skip
+                   """;
+
+    var result = await connection.QueryAsync<MovieSuggestion>(getQuery, new { searchingPattern, skip, take });
+
+    return Results.Ok(result);
+}).WithName("GetSearchingPreview").WithOpenApi();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

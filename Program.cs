@@ -19,22 +19,27 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/searchingPreview", async (string search, string? skip, string? take) =>
+// Vor builder.Build():
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+// Nach app.UseHttpsRedirection():
+app.UseCors();
+
+app.MapGet("/searchingPreview", async (string search, int skip = 0, int take = 5) =>
 {
     await using var connection = new SqliteConnection("Data Source=search.db");
     await connection.OpenAsync();
 
-    if (take == null)
-    {
-        take = "5";
-    }
-
-    if (skip == null)
-    {
-        skip = "0";
-    }
-
     var searchingPattern = $"%{search}%";
+
 
     var getQuery = """
                    SELECT idx, title

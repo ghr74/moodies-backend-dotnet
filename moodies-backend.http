@@ -1,0 +1,11 @@
+@moodies_backend_HostAddress = http://localhost:5230
+@public_address = http://b4ossk8ww008cg804swwkkk0.176.116.18.239.sslip.io
+@query = lord
+
+GET {{moodies_backend_HostAddress}}/search?q={{query}}
+Accept: application/json
+
+###
+
+GET {{public_address}}/search?q={{query}}
+Accept: application/json
